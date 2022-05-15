@@ -11,6 +11,7 @@ from ..decorators import slash_group
 from ..exceptions import DingomataUserError
 from ..models import Poll, PollEntry
 from ..utils import View
+from .base import BaseCog
 
 _log = logging.getLogger(__name__)
 
@@ -40,13 +41,13 @@ class PollVoteView(View):
             self.add_item(PollVoteButton(i))
 
 
-class PollCog(discord.Cog):
+class PollCog(BaseCog):
     """Run polls in Discord. Each channel can only have one active poll at a time."""
 
     poll = slash_group("poll", "Run polls in a channel.")
 
     def __init__(self, bot: discord.Bot):
-        self._bot = bot
+        super().__init__(bot)
         self._views: Dict[Tuple[int, int], PollVoteView] = {}
 
     @discord.Cog.listener()
@@ -59,20 +60,11 @@ class PollCog(discord.Cog):
         self.poll_message_pin.stop()
 
     @poll.command()
+    @discord.option('title', description="Title of poll")
     async def start(
-            self,
-            ctx: discord.ApplicationContext,
-            title: discord.Option(str, "Title of the poll"),
-            option1: discord.Option(str, "The first option"),
-            option2: discord.Option(str, "The second option"),
-            option3: discord.Option(str, "The third option", required=False),
-            option4: discord.Option(str, "The fourth option", required=False),
-            option5: discord.Option(str, "The fifth option", required=False),
-            option6: discord.Option(str, "The sixth option", required=False),
-            option7: discord.Option(str, "The seventh option", required=False),
-            option8: discord.Option(str, "The eighth option", required=False),
-            option9: discord.Option(str, "The ninth option", required=False),
-            option10: discord.Option(str, "The tenth option", required=False),
+            self, ctx: discord.ApplicationContext, title: str,
+            option1: str, option2: str, option3: str = None, option4: str = None, option5: str = None,
+            option6: str = None, option7: str = None, option8: str = None, option9: str = None, option10: str = None,
     ) -> None:
         """Start a new poll."""
         options = [o for o in (option1, option2, option3, option4, option5,
@@ -102,7 +94,7 @@ class PollCog(discord.Cog):
             except tortoise.exceptions.DoesNotExist as e:
                 raise PollUserError("There is no poll running in this channel.") from e
             options = orjson.loads(poll.options)
-            channel = self._bot.get_channel(poll.channel_id)
+            channel = self._bot_for(ctx.guild.id).get_channel(poll.channel_id)
             message = channel.get_partial_message(poll.message_id)
             embed = await self._generate_embed(poll, options, False)
 
@@ -112,18 +104,23 @@ class PollCog(discord.Cog):
 
             # Post the poll results
             view = self._views.pop((ctx.guild.id, ctx.channel.id), None)
-            await message.delete()
+            try:
+                await message.delete()
+            except discord.NotFound:
+                pass  # it's already gone by some other means
             if view:
                 view.stop()
-            await channel.send(embed=embed)
+            await ctx.respond(embed=embed)
 
     @loop(seconds=2)
     async def poll_message_updater(self):
         try:
-            polls = await Poll.filter(guild_id__in=self.poll.guild_ids, message_id__not_isnull=True)
+            polls = await Poll.filter(
+                guild_id__in=[guild.id for guild in self._bot.guilds],
+                message_id__not_isnull=True,
+            )
             for poll in polls:
-                print(poll)
-                channel = self._bot.get_channel(poll.channel_id)
+                channel = self._bot_for(poll.guild_id).get_channel(poll.channel_id)
                 message = channel.get_partial_message(poll.message_id)
                 options = orjson.loads(poll.options)
                 embed = await self._generate_embed(poll, options, True)
@@ -131,7 +128,10 @@ class PollCog(discord.Cog):
                 if not view:
                     view = PollVoteView(len(options))
                     self._views[(poll.guild_id, poll.channel_id)] = view
-                await message.edit(embed=embed, view=view)
+                try:
+                    await message.edit(embed=embed, view=view)
+                except discord.NotFound:
+                    pass  # the message was deleted
         except Exception as e:
             _log.exception(e)
 
@@ -140,9 +140,11 @@ class PollCog(discord.Cog):
         try:
             async with tortoise.transactions.in_transaction() as tx:
                 polls = await Poll.select_for_update().filter(
-                    guild_id__in=self.poll.guild_ids, message_id__not_isnull=True).using_db(tx).all()
+                    guild_id__in=[guild.id for guild in self._bot.guilds],
+                    message_id__not_isnull=True,
+                ).using_db(tx).all()
                 for poll in polls:
-                    channel = self._bot.get_channel(poll.channel_id)
+                    channel = self._bot_for(poll.guild_id).get_channel(poll.channel_id)
                     if channel.last_message_id != poll.message_id:
                         options = orjson.loads(poll.options)
                         embed = await self._generate_embed(poll, options, True)

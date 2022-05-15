@@ -13,6 +13,7 @@ from ..config import service_config
 from ..decorators import slash_group
 from ..exceptions import DingomataUserError
 from ..models import Bedtime
+from .base import BaseCog
 
 _log = logging.getLogger(__name__)
 _calendar = parsedatetime.Calendar()
@@ -24,23 +25,21 @@ class BedtimeSpecificationError(DingomataUserError):
     pass
 
 
-class BedtimeCog(discord.Cog):
+class BedtimeCog(BaseCog):
     """Remind users to go to bed."""
 
     bedtime = slash_group(name="bedtime", description="Get a reminder to go to bed when you're up late.")
     _BEDTIME_KWDS = {"bed", "sleep", "bye", "cya", "see y", "night", "nini", "nite", "comf"}
+    _CACHE: Dict[int, Bedtime] = {}
 
     def __init__(self, bot: discord.Bot):
-        self._bot = bot
-        self._cache: Dict[int, Bedtime] = {}
+        super().__init__(bot)
 
     @bedtime.command()
-    async def set(
-            self,
-            ctx: discord.ApplicationContext,
-            time: discord.Option(str, "Your usual bedtime, for example 11:00pm, or 23:00"),
-            timezone: discord.Option(str, "Your timezone, for example US/Pacific"),
-    ) -> None:
+    @discord.option('time', description="Your usual bedtime, for example 11:00pm, or 23:00")
+    @discord.option('timezone', description="Your timezone",
+                    autocomplete=discord.utils.basic_autocomplete(pytz.common_timezones))
+    async def set(self, ctx: discord.ApplicationContext, time: str, timezone: str) -> None:
         """Set a bedtime. I will remind you to go to bed when you chat after this time."""
         # Convert user timezone to UTC
         try:
@@ -57,7 +56,7 @@ class BedtimeCog(discord.Cog):
             )
         time_obj = datetime_obj.time()
         await Bedtime.update_or_create({"bedtime": time_obj, "timezone": str(tz)}, user_id=ctx.author.id)
-        self._cache.pop(ctx.author.id, None)
+        self._CACHE.pop(ctx.author.id, None)
 
         await ctx.respond(f"Done! I've saved your bedtime as {time_obj} {tz}.", ephemeral=True)
 
@@ -66,7 +65,7 @@ class BedtimeCog(discord.Cog):
         """Clears your existing bed time."""
         deleted_count = await Bedtime.filter(user_id=ctx.author.id).delete()
         if deleted_count:
-            self._cache.pop(ctx.author.id, None)
+            self._CACHE.pop(ctx.author.id, None)
             await ctx.respond("Done! I've removed your bedtime preferences.", ephemeral=True)
         else:
             await ctx.respond("You did not have a bedtime set.", ephemeral=True)
@@ -132,9 +131,9 @@ class BedtimeCog(discord.Cog):
                         "discord server, same as us, and that furry over there.",
                     ])
                 await message.channel.send(f"Hey {message.author.mention}, {text}")
-                result.last_notified = utcnow
+                result.last_notified = utcnow  # type: ignore
                 await result.save(update_fields=["last_notified"])
-                _log.info(f"Notified {message.author} about bedtime.")
+                _log.debug(f"Bedtime notified: {message.author}")
         except discord.Forbidden:
             _log.warning(f"Failed to notify {message.author} in {message.guild} about bedtime. The bot doesn't "
                          f"have permissions to post there.")
@@ -145,9 +144,9 @@ class BedtimeCog(discord.Cog):
         return timedelta(minutes=service_config.server[guild_id].bedtime.cooldown_minutes)
 
     async def _get_bedtime(self, user_id: int) -> Optional[Bedtime]:
-        if user_id in self._cache:
-            return self._cache[user_id]
+        if user_id in self._CACHE:
+            return self._CACHE[user_id]
         else:
             bedtime = await Bedtime.get_or_none(user_id=user_id)
-            self._cache[user_id] = bedtime
+            self._CACHE[user_id] = bedtime
             return bedtime

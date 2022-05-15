@@ -15,6 +15,7 @@ from ..decorators import slash_group
 from ..exceptions import DingomataUserError
 from ..models import GambaGame, GambaUser
 from ..utils import View
+from .base import BaseCog
 
 _log = logging.getLogger(__name__)
 
@@ -44,14 +45,14 @@ class GambaView(View):
         await interaction.response.send_message(f"Success! You've bet a total of {total}.", ephemeral=True)
 
 
-class GambaCog(discord.Cog):
+class GambaCog(BaseCog):
     """Gamble with server points."""
 
     gamba = slash_group("gamba", "Gamble your points away!")
     gamble = slash_group("gamble", "Give people the opportunity to gamble their points away!", config_group="gamba")
 
     def __init__(self, bot: discord.Bot) -> None:
-        self._bot = bot
+        super().__init__(bot)
         self._views: Dict[int, View] = {}
 
     @discord.Cog.listener()
@@ -65,17 +66,13 @@ class GambaCog(discord.Cog):
 
     # ### MOD COMMANDS ###
     @gamble.command()
-    async def start(
-            self,
-            ctx: discord.ApplicationContext,
-            title: discord.Option(str, "Title for the prediction"),
-            believe: discord.Option(str, 'Name of the "believe" outcome'),
-            doubt: discord.Option(str, 'Name of the "doubt" outcome'),
-            timeout: discord.Option(int, "Number of minutes to take bets", default=2),
-    ) -> None:
+    @discord.option('title', description="Title for the prediction")
+    @discord.option('believe', description="Name of the 'believe' outcome")
+    @discord.option('doubt', description="Name of the 'doubt' outcome")
+    @discord.option('timeout', description="Number of minutes to take bets", min_value=1, max_value=10)
+    async def start(self, ctx: discord.ApplicationContext, title: str, believe: str, doubt: str, timeout: int = 2,
+                    ) -> None:
         """Start a new gamba."""
-        if not 0 < timeout <= 10:
-            raise GambaUserError("Timeout must between 1 and 10 minutes.")
         if await GambaGame.filter(guild_id=ctx.guild.id).exists():
             raise GambaUserError(
                 "There's already a gamba running in this server. Pay it out or refund it before starting a new one."
@@ -91,11 +88,8 @@ class GambaCog(discord.Cog):
         await game.save(force_create=True)
 
     @gamble.command()
-    async def payout(
-            self,
-            ctx: discord.ApplicationContext,
-            outcome: discord.Option(str, "The winning outcome", choices=["believe", "doubt"]),
-    ) -> None:
+    @discord.option('outcome', description="The winning outcome", choices=["believe", "doubt"])
+    async def payout(self, ctx: discord.ApplicationContext, outcome: str) -> None:
         """Select an outcome for the running gamba and pay the winners."""
         points_name = service_config.server[ctx.guild.id].gamba.points_name
         async with tortoise.transactions.in_transaction() as tx:
@@ -135,7 +129,7 @@ class GambaCog(discord.Cog):
             field_id = 0 if outcome == "believe" else 0
             field = embed.fields[field_id]
             embed.set_field_at(field_id, name="☑ " + field.name, value=field.value, inline=field.inline)
-            message = self._bot.get_channel(game.channel_id).get_partial_message(game.message_id)
+            message = self._bot_for(ctx.guild.id).get_channel(game.channel_id).get_partial_message(game.message_id)
             await message.edit(embed=embed)
             await ctx.respond("Payout is complete. Users are being sent private updates about their bet results. "
                               "Do not start a new gamba until this process is complete.", ephemeral=True)
@@ -185,7 +179,8 @@ class GambaCog(discord.Cog):
                 bet_believe=0,
                 bet_doubt=0,
             )
-            await self._bot.get_channel(game.channel_id).get_partial_message(game.message_id).edit(embed=embed)
+            await self._bot_for(ctx.guild.id).get_channel(game.channel_id).get_partial_message(game.message_id).edit(
+                embed=embed)
             await game.delete(using_db=tx)
             await ctx.respond("The current gamba has been cancelled and all points are refunded.", ephemeral=True)
 
@@ -209,7 +204,7 @@ class GambaCog(discord.Cog):
                             view = GambaView(timeout=(game.open_until - now).total_seconds())
                             self._views[game.guild_id] = view
                     embed = await self._generate_gamba_embed(game)
-                    channel = self._bot.get_channel(game.channel_id)
+                    channel = self._bot_for(game.guild_id).get_channel(game.channel_id)
                     message = channel.get_partial_message(game.message_id)
                     await message.edit(embed=embed, view=view)
                     await game.save(using_db=tx)
@@ -223,7 +218,7 @@ class GambaCog(discord.Cog):
                 games = await GambaGame.select_for_update().filter(
                     is_open=True, guild_id__in=self.gamba.guild_ids).using_db(tx).all()
                 for game in games:
-                    channel = self._bot.get_channel(game.channel_id)
+                    channel = self._bot_for(game.guild_id).get_channel(game.channel_id)
                     if channel.last_message_id != game.message_id:
                         embed = await self._generate_gamba_embed(game)
                         view = self._views.get(game.guild_id)
@@ -252,23 +247,17 @@ class GambaCog(discord.Cog):
         await ctx.respond(f"**{points_name.title()} Holder Leaderboard**\n```{table}```")
 
     @gamble.command(name="balance")
-    async def mod_balance(
-            self,
-            ctx: discord.ApplicationContext,
-            user: discord.Option(discord.User, "Whose balance to check"),
-    ) -> None:
+    @discord.option('user', description="Whose balance to check")
+    async def mod_balance(self, ctx: discord.ApplicationContext, user: discord.User) -> None:
         """Check any user's balance"""
         points_name = service_config.server[ctx.guild.id].gamba.points_name
         balance = await self._get_balance(ctx.guild.id, user.id)
         await ctx.respond(f"{user.mention} has {balance:,} {points_name}.", ephemeral=True)
 
     @gamble.command()
-    async def change(
-            self,
-            ctx: discord.ApplicationContext,
-            user: discord.Option(discord.User, "Whose points balance to modify"),
-            amount: discord.Option(int, "Amount of points to add. Use a negative number to deduct."),
-    ) -> None:
+    @discord.option('user', description="Whose points balance to modify")
+    @discord.option('amount', description="Amount of points to add. Use a negative number to deduct.")
+    async def change(self, ctx: discord.ApplicationContext, user: discord.User, amount: int) -> None:
         """Change a user's point balance. This action generates a public message."""
         points_name = service_config.server[ctx.guild.id].gamba.points_name
         if user == ctx.author:
@@ -282,21 +271,15 @@ class GambaCog(discord.Cog):
 
     # ### USER COMMANDS ###
     @gamba.command()
-    async def believe(
-            self,
-            ctx: discord.ApplicationContext,
-            amount: discord.Option(int, "Number of points to bet"),
-    ) -> None:
+    @discord.option('amount', description="Number of points to bet")
+    async def believe(self, ctx: discord.ApplicationContext, amount: int) -> None:
         """Bet on believe."""
         total = await self.make_bet(ctx, "believe", amount)
         await ctx.respond(f"Success! You've bet a total of {total}.", ephemeral=True)
 
     @gamba.command()
-    async def doubt(
-            self,
-            ctx: discord.ApplicationContext,
-            amount: discord.Option(int, "Number of points to bet"),
-    ) -> None:
+    @discord.option('amount', description="Number of points to bet")
+    async def doubt(self, ctx: discord.ApplicationContext, amount: int) -> None:
         """Bet on doubt."""
         total = await self.make_bet(ctx, "doubt", amount)
         await ctx.respond(f"Success! You've bet a total of {total}.", ephemeral=True)
@@ -371,18 +354,11 @@ class GambaCog(discord.Cog):
                 )
 
     @gamba.command()
-    async def give(
-            self,
-            ctx: discord.ApplicationContext,
-            user: discord.Option(discord.User, "Who to give your points to"),
-            amount: discord.Option(int, "Amount of points to give"),
-    ) -> None:
+    @discord.option('user', description="Who to give your points to")
+    @discord.option('amount', description="Amount of points to give", min_value=1)
+    async def give(self, ctx: discord.ApplicationContext, user: discord.User, amount: int) -> None:
         """Give some of your points to another user."""
         points_name = service_config.server[ctx.guild.id].gamba.points_name
-        if amount <= 0:
-            raise DingomataUserError(
-                f"Well that's just not nice, is it? " f"You need to give a positive number of {points_name}."
-            )
         async with tortoise.transactions.in_transaction() as tx:
             current_user, _ = await GambaUser.get_or_create(guild_id=ctx.guild.id, user_id=ctx.author.id, using_db=tx)
             target_user, _ = await GambaUser.get_or_create(guild_id=ctx.guild.id, user_id=user.id, using_db=tx)
@@ -408,8 +384,8 @@ class GambaCog(discord.Cog):
         SELECT rank
         FROM ({all_query}) a
         WHERE user_id = $2
-        """
-        top_query = f"SELECT * FROM ({all_query}) a WHERE rank < 10"
+        """  # noqa: S608
+        top_query = f"SELECT * FROM ({all_query}) a WHERE rank < 10"  # noqa: S608
 
         conn = tortoise.Tortoise.get_connection("default")
         data = await conn.execute_query_dict(current_user_query, [ctx.guild.id, ctx.author.id])
@@ -421,7 +397,7 @@ class GambaCog(discord.Cog):
 
         if user_rank and user_rank > 10:
             # Plus everyone near the given user
-            nearby_query = f"SELECT * FROM ({all_query}) a WHERE rank BETWEEN $2 AND $3"
+            nearby_query = f"SELECT * FROM ({all_query}) a WHERE rank BETWEEN $2 AND $3"  # noqa: S608
             data = await conn.execute_query_dict(nearby_query, [ctx.guild.id, max(11, user_rank - 3), user_rank + 3])
             table.add_row(("...", "...", "..."))
             self._generate_leaderboard_rows(ctx.guild, data, table)

@@ -12,6 +12,7 @@ from ..decorators import slash_group
 from ..exceptions import DingomataUserError
 from ..models import GamePool, GamePoolEntry
 from ..utils import View
+from .base import BaseCog
 
 log = logging.getLogger(__name__)
 
@@ -103,14 +104,14 @@ class JoinView(View):
         self.add_item(JoinButton(guild_id, leave_view))
 
 
-class GameCodeCog(discord.Cog):
+class GameCodeCog(BaseCog):
     """Randomly send game codes to people who join a game."""
 
     game = slash_group("game", "Manage game codes")
 
     def __init__(self, bot: discord.Bot):
         """Initialize application state."""
-        self._bot = bot
+        super().__init__(bot)
         self._join_views: Dict[int, JoinView] = {}
         self._leave_views: Dict[int, LeaveView] = {}
 
@@ -124,15 +125,13 @@ class GameCodeCog(discord.Cog):
             self._bot.add_view(view)
 
     @game.command()
-    async def open(
-            self,
-            ctx: discord.ApplicationContext,
-            title: discord.Option(str, "Name of the game to start"),
-            allow: discord.Option(int, "Who can join the game", default=GameMode.NEW_PLAYERS_ONLY.value, choices=[
-                discord.OptionChoice("Anyone", GameMode.ANYONE.value),
-                discord.OptionChoice("New Players Only", GameMode.NEW_PLAYERS_ONLY.value),
-            ]),
-    ) -> None:
+    @discord.option('title', description="Name of the game to start")
+    @discord.option('allow', description="Who can join the game", choices=[
+        discord.OptionChoice("Anyone", GameMode.ANYONE.value),
+        discord.OptionChoice("New Players Only", GameMode.NEW_PLAYERS_ONLY.value),
+    ])
+    async def open(self, ctx: discord.ApplicationContext, title: str, allow: int = GameMode.NEW_PLAYERS_ONLY.value,
+                   ) -> None:
         """Open a new game pool for people to join."""
         await ctx.defer(ephemeral=True)
         async with tortoise.transactions.in_transaction() as tx:
@@ -156,12 +155,14 @@ class GameCodeCog(discord.Cog):
             )
             message = await ctx.channel.send(embed=embed, view=self._join_views[ctx.guild.id])
 
-            await GamePool.update_or_create(dict(is_accepting_entries=True, title=title, mode=allow,
-                                                 channel_id=ctx.channel.id, message_id=message.id),
-                                            guild_id=ctx.guild.id,
-                                            using_db=tx)
+            await GamePool.update_or_create(
+                {
+                    'is_accepting_entries': True, 'title': title, 'mode': allow, 'channel_id': ctx.channel.id,
+                    'message_id': message.id, 'guild_id': ctx.guild.id
+                },
+                using_db=tx)
             await ctx.respond("Pool is now open.", ephemeral=True)
-            log.info(f"Game pool opened for: {title}")
+            log.debug(f"Game pool opened: {title}")
 
     @game.command()
     async def close(self, ctx: discord.ApplicationContext) -> None:
@@ -181,21 +182,15 @@ class GameCodeCog(discord.Cog):
 
         embed = discord.Embed(title=f"Pool for {pool.title} is now closed.", description=f"Total Entries: {user_count}",
                               color=discord.Color.dark_red())
-        message = self._bot.get_channel(pool.channel_id).get_partial_message(pool.message_id)
+        message = self._bot_for(ctx.guild.id).get_channel(pool.channel_id).get_partial_message(pool.message_id)
         await message.edit(embed=embed, view=None)
         await ctx.respond("Pool has been closed.", ephemeral=True)
 
     @game.command()
-    async def pick(
-            self,
-            ctx: discord.ApplicationContext,
-            count: discord.Option(int, "Number of users to pick"),
-            message: discord.Option(str, "Message to send them"),
-    ) -> None:
+    @discord.option('count', description="Number of users to pick", min_value=1)
+    @discord.option('message', description="Message to send to picked users")
+    async def pick(self, ctx: discord.ApplicationContext, count: int, message: str) -> None:
         """Pick random eligible users from the pool and send them a DM."""
-        if count < 1:
-            raise DingomataUserError("You have to pick at least one user.")
-
         await ctx.defer(ephemeral=True)
         try:
             async with tortoise.transactions.in_transaction() as tx:
@@ -224,7 +219,7 @@ class GameCodeCog(discord.Cog):
         await GamePoolEntry.filter(guild_id=ctx.guild.id, user_id__in=picked_user_ids).update(
             status=EntryStatus.SELECTED.value)
 
-        log.info(f'Picked users: {", ".join(str(user) for _, user in picked_users)}')
+        log.debug(f'Picked users: {", ".join(str(user) for _, user in picked_users)}')
         embed = discord.Embed(title="Congratulations! Check for your game code in DM's!",
                               description=f"Total entries: {user_count}\n", color=discord.Color.blue())
         embed.add_field(name="Selected Users", value="\n".join(user.display_name for _, user in picked_users))
@@ -234,7 +229,8 @@ class GameCodeCog(discord.Cog):
         await ctx.respond("All done!", ephemeral=True)
 
     @game.command()
-    async def resend(self, ctx: discord.ApplicationContext, message: discord.Option(str, "Message to send")) -> None:
+    @discord.option('message', description="Message to send")
+    async def resend(self, ctx: discord.ApplicationContext, message: str) -> None:
         """Send a DM to all existing picked users."""
         await ctx.defer(ephemeral=True)
         entries = await GamePoolEntry.filter(guild_id=ctx.guild.id, status=EntryStatus.SELECTED.value)
@@ -262,7 +258,7 @@ class GameCodeCog(discord.Cog):
     async def _send_dm(ctx: discord.ApplicationContext, message: str, user: discord.Member) -> None:
         try:
             await user.send(message)
-            log.info(f"Sent a DM to {user}: {message}")
+            log.debug(f"Sent a DM to {user}: {message}")
         except discord.Forbidden:
             await ctx.respond(f"Failed to DM {user.mention}. Their DM is probably not open. Use the resend command "
                               f"to try again, or issue another pick command to pick more members.", ephemeral=True)

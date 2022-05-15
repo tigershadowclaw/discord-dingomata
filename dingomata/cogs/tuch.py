@@ -8,15 +8,13 @@ from tortoise import functions as func
 
 from ..decorators import slash
 from ..models import Tuch
+from .base import BaseCog
 
 _log = logging.getLogger(__name__)
 
 
-class TuchCog(discord.Cog):
+class TuchCog(BaseCog):
     """Tuch some butts."""
-
-    def __init__(self, bot: discord.Bot):
-        self._bot = bot
 
     @slash(cooldown=True)
     async def tuch(self, ctx: discord.ApplicationContext) -> None:
@@ -43,8 +41,8 @@ class TuchCog(discord.Cog):
             total_tuchs=func.Sum("total_tuchs"), total_butts=func.Sum("total_butts"),
         ).first().values_list("total_tuchs", "total_butts")
         message = (
-            f"Total butts tuched: {total_butts:,}\n"
-            f"Total number of times tuch was used: {total_tuchs:,}\n"
+            f"Total butts tuched: {total_butts or 0:,}\n"
+            f"Total number of times tuch was used: {total_tuchs or 0:,}\n"
             f"Total butts in server: {ctx.guild.member_count:,}\n"
         )
         # manual query bc no window function support

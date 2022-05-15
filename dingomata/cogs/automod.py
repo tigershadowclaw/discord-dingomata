@@ -2,11 +2,12 @@ import logging
 import re
 from datetime import timedelta
 from enum import Enum
-from typing import List, Set
+from typing import List, Optional, Set
 
 import discord
 from unidecode import unidecode
 
+from dingomata.cogs.base import BaseCog
 from dingomata.config.bot import service_config
 from dingomata.decorators import slash_group
 from dingomata.utils import View
@@ -22,8 +23,8 @@ class AutomodAction(Enum):
 
 class AutomodActionView(View):
     def __init__(self):
-        self.action: AutomodAction | None = None
-        self.confirmed_by: discord.Member | None = None
+        self.action: Optional[AutomodAction] = None
+        self.confirmed_by: Optional[discord.Member] = None
         super().__init__(timeout=None)
 
     @discord.ui.select(placeholder='Select an action', options=[
@@ -43,7 +44,7 @@ class AutomodActionView(View):
             interaction.response.send_message("You can't do this, you're not a mod.")
 
 
-class AutomodCog(discord.Cog):
+class AutomodCog(BaseCog):
     """Message filtering."""
 
     _URL_REGEX = re.compile(r"\bhttps?://(?!(?:[^/]+\.)?(?:twitch\.tv/|tenor\.com/view/|youtube\.com/|youtu\.be/))")
@@ -55,7 +56,7 @@ class AutomodCog(discord.Cog):
     roles = slash_group(name="roles", description="Add or remove roles for yourself.")
 
     def __init__(self, bot: discord.Bot):
-        self._bot = bot
+        super().__init__(bot)
 
         #: Message IDs that are already being deleted - skip to avoid double posting
         self._processing_message_ids: Set[int] = set()
@@ -134,23 +135,24 @@ class AutomodCog(discord.Cog):
             embed.add_field(name="Action(s) taken", value="\n".join(actions), inline=False)
             embed.add_field(name="Original Message", value=message.content, inline=False)
             view = AutomodActionView()
-            notify_message = await self._bot.get_channel(log_channel).send(
+            notify_message = await self._bot_for(message.guild.id).get_channel(log_channel).send(
                 content=service_config.server[message.guild.id].automod.text_prefix,
                 embed=embed, view=view
             )
             await view.wait()
-            if view.action is AutomodAction.BAN:
-                await message.author.ban(reason=f'Scam message confirmed by {view.confirmed_by.display_name}')
-                actions.append(f'Banned user, confirmed by {view.confirmed_by.display_name}')
-            elif view.action is AutomodAction.KICK:
-                await message.author.kick(reason=f'Scam message confirmed by {view.confirmed_by.display_name}')
-                actions.append(f'Kicked user, confirmed by {view.confirmed_by.display_name}')
-            elif view.action is AutomodAction.UNDO:
-                await message.author.remove_timeout(
-                    reason=f'False detection reviewed by {view.confirmed_by.display_name}')
-                actions.append(f'Timeout removed, reviewed by {view.confirmed_by.display_name}')
-            embed.set_field_at(3, name="Action(s) taken", value="\n".join(actions))
-            await notify_message.edit(embed=embed, view=None)
+            if view.confirmed_by:
+                if view.action is AutomodAction.BAN:
+                    await message.author.ban(reason=f'Scam message confirmed by {view.confirmed_by.display_name}')
+                    actions.append(f'Banned user, confirmed by {view.confirmed_by.display_name}')
+                elif view.action is AutomodAction.KICK:
+                    await message.author.kick(reason=f'Scam message confirmed by {view.confirmed_by.display_name}')
+                    actions.append(f'Kicked user, confirmed by {view.confirmed_by.display_name}')
+                elif view.action is AutomodAction.UNDO:
+                    await message.author.remove_timeout(
+                        reason=f'False detection reviewed by {view.confirmed_by.display_name}')
+                    actions.append(f'Timeout removed, reviewed by {view.confirmed_by.display_name}')
+                embed.set_field_at(3, name="Action(s) taken", value="\n".join(actions))
+                await notify_message.edit(embed=embed, view=None)
         self._processing_message_ids.discard(message.id)
 
     @staticmethod
@@ -162,41 +164,38 @@ class AutomodCog(discord.Cog):
         )
         return next(matches, None)
 
+    @staticmethod
+    def role_autocomplete(ctx: discord.AutocompleteContext) -> List[str]:
+        assignable = [ctx.interaction.guild.get_role(role_id)
+                      for role_id in service_config.server[ctx.interaction.guild.id].roles.self_assign]
+        return [role.name for role in assignable if role.name.lower().startswith(ctx.value.lower())]
+
     @roles.command()
-    async def add(self, ctx: discord.ApplicationContext, role: discord.Option(discord.Role, "Role to add")) -> None:
+    @discord.option('role', description="Role to add", autocomplete=role_autocomplete)
+    async def add(self, ctx: discord.ApplicationContext, role: str) -> None:
         """Assign yourself a role in this server"""
-        if role.id in service_config.server[ctx.guild.id].roles.self_assign:
-            await ctx.author.add_roles(role, reason="Requested via bot")
-            await ctx.respond(f"You've been given the {role.name} role.", ephemeral=True)
-        else:
-            await ctx.respond("You cannot change that role yourself. Please ask a moderator for help.", ephemeral=True)
+        try:
+            role_obj = next(r for r in ctx.guild.roles if r.name == role)
+            if role_obj.id in service_config.server[ctx.guild.id].roles.self_assign:
+                await ctx.author.add_roles(role_obj, reason="Requested via bot")
+                await ctx.respond(f"You now have the {role_obj.name} role.", ephemeral=True)
+            else:
+                await ctx.respond("You cannot change that role yourself. Please ask a moderator for help.",
+                                  ephemeral=True)
+        except StopIteration:
+            await ctx.respond(f"There is no role called {role} in this server.", ephemeral=True)
 
     @roles.command()
-    async def remove(
-            self,
-            ctx: discord.ApplicationContext,
-            role: discord.Option(discord.Role, "Role to remove"),
-    ) -> None:
+    @discord.option('role', description="Role to remove", autocomplete=role_autocomplete)
+    async def remove(self, ctx: discord.ApplicationContext, role: str) -> None:
         """Remove a role from yourself in this server"""
-        if role.id in service_config.server[ctx.guild.id].roles.self_assign:
-            await ctx.author.remove_roles(role, reason="Requested via bot")
-            await ctx.respond(f"You've been removed from the {role.name} role.", ephemeral=True)
-        else:
-            await ctx.respond("You cannot change that role yourself. Please ask a moderator for help.", ephemeral=True)
-
-    @roles.command(name='list')
-    async def list_roles(self, ctx: discord.ApplicationContext):
-        """Show the list of roles you can add yourself."""
-        roles = service_config.server[ctx.guild.id].roles.self_assign
-        if roles:
-            await ctx.respond(
-                "You can assign yourself the following roles: \n"
-                + "\n".join(ctx.guild.get_role(role_id).mention for role_id in roles),
-                ephemeral=True,
-            )
-        else:
-            await ctx.respond(
-                "This server is not configured to allow self-adding any roles. Please speak to a "
-                "moderator if you think this is wrong.",
-                ephemeral=True,
-            )
+        try:
+            role_obj = next(r for r in ctx.guild.roles if r.name == role)
+            if role_obj.id in service_config.server[ctx.guild.id].roles.self_assign:
+                await ctx.author.remove_roles(role_obj, reason="Requested via bot")
+                await ctx.respond(f"You've been removed from the {role_obj.name} role.", ephemeral=True)
+            else:
+                await ctx.respond("You cannot change that role yourself. Please ask a moderator for help.",
+                                  ephemeral=True)
+        except StopIteration:
+            await ctx.respond(f"There is no role called {role} in this server.", ephemeral=True)
