@@ -145,7 +145,10 @@ func logLeave(d EventData[dg.GuildMemberRemove]) error {
 
 func logTimeout(d EventData[dg.GuildMemberUpdate]) error {
 	if logChannel, err := config.LogsChannelID.Get(d.Event.GuildID).Value(); err == nil {
-		if d.Event.CommunicationDisabledUntil != nil && d.Event.BeforeUpdate != nil && d.Event.CommunicationDisabledUntil != d.Event.BeforeUpdate.CommunicationDisabledUntil {
+		if d.Event.CommunicationDisabledUntil != nil &&
+			d.Event.BeforeUpdate != nil &&
+			d.Event.CommunicationDisabledUntil.After(time.Now()) &&
+			d.Event.CommunicationDisabledUntil != d.Event.BeforeUpdate.CommunicationDisabledUntil {
 			// Timeout set
 			_, err := d.Session.ChannelMessageSendEmbed(string(logChannel), &dg.MessageEmbed{
 				Title: "User Timed Out",
