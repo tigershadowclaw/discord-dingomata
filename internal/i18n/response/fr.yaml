@@ -7,108 +7,68 @@ base:
     - "Retiens-toi, p’tit poilu ! Tu es en cooldown. Ou va libérer tes zoomies dans le canal de spam du bot !"
 my/bedtime/get:
   success: Ton heure de coucher actuelle est fixée à {{ .time }}.
-  missing: Tu n'as pas encore défini d'heure de coucher. Utilise `set` pour en
-    ajouter une.
+  missing: Tu n'as pas encore défini d'heure de coucher. Utilise `set` pour en ajouter une.
 my/bedtime/set:
-  invalid: Je n'ai pas compris cette heure. Utilise un format comme `11:00pm` ou
-    `23:00`.
-  tzMissing: Tu n'as pas encore défini de fuseau horaire. Utilise `/my timezone
-    set` pour régler ça.
+  invalid: Je n'ai pas compris cette heure. Utilise un format comme `11:00pm` ou `23:00`.
+  tzMissing: Tu n'as pas encore défini de fuseau horaire. Utilise `/my timezone set` pour régler ça.
   success:
-    C'est noté ! Ton heure de coucher est fixée. Je te rappellerai si tu es
-    encore actif.
+    C'est noté ! Ton heure de coucher est fixée. Je te rappellerai si tu es encore actif.
 my/bedtime/clear:
   success:
-    Ton heure de coucher a été supprimée. Je ne te rappellerai plus d'aller
-    dormir.
+    Ton heure de coucher a été supprimée. Je ne te rappellerai plus d'aller dormir.
 my/bedtime/notifs:
   late:
-    - Tu es debout après l'heure du coucher, {{ .user }}. C'est contre les lois
-      sacrées des furries fatigués ! Dors !
+    - Tu es debout après l'heure du coucher, {{ .user }}. C'est contre les lois sacrées des furries fatigués ! Dors !
     - "{{ .user }} ! Dors ! MAINTENANT !"
     - "{{ .user }}, au lit avant de devenir un zombie en manque de sommeil."
-    - "{{ .user }}, dormir, c'est comme un point de sauvegarde. Sauvegarde ta
-      partie pour demain !"
+    - "{{ .user }}, dormir, c'est comme un point de sauvegarde. Sauvegarde ta partie pour demain !"
     - "{{ .user }}, ton lit t'appelle. Tu ne l'entends pas ? Dors maintenant !"
     - "{{ .user }}, ton oreiller est seul. Va lui tenir compagnie !"
     - Allez {{ .user }}, déconnecte et dors. Internet sera toujours là demain !
-    - Au lit, {{ .user }}. Tout le monde sera là demain, tu pourras leur parler
-      alors.
-    - Bâillement... Même l'alpha de la meute dort, {{ .user }}. Tu veux pas être
-      un floof reposé ?
-    - Bon, {{ .user }}, dernier avertissement. Si tu ne dors pas, j'envoie une
-      meute de huskies endormis te chercher !
+    - Au lit, {{ .user }}. Tout le monde sera là demain, tu pourras leur parler alors.
+    - Bâillement... Même l'alpha de la meute dort, {{ .user }}. Tu veux pas être un floof reposé ?
+    - Bon, {{ .user }}, dernier avertissement. Si tu ne dors pas, j'envoie une meute de huskies endormis te chercher !
     - Dors, {{ .user }} ! Le monde des rêves t'attend.
-    - Dors, {{ .user }} ! Sinon, le renard des rêves refusera de t'apporter des
-      songes cool cette nuit.
-    - Écoute-moi {{ .user }}. Tes yeux deviennent lourds. Tu plonges dans un
-      profond sommeil. **Dors maintenant.**
+    - Dors, {{ .user }} ! Sinon, le renard des rêves refusera de t'apporter des songes cool cette nuit.
+    - Écoute-moi {{ .user }}. Tes yeux deviennent lourds. Tu plonges dans un profond sommeil. **Dors maintenant.**
     - Hé {{ .user }}, au lit ! Il est déjà tard.
     - Hé {{ .user }}, au lit ! Sinon, demain sera dur.
-    - Hé {{ .user }}, il est l'heure de dormir ! Sauf si tu es un hibou, alors
-      dors debout.
-    - Il est bien trop tard, {{ .user }}. Même les loups-garous sont déjà au
-      lit. Va dormir !
-    - Imagine comme tu te sentiras bien demain si tu dors maintenant, {{ .user
-      }}. Au lit !
-    - La lune est fatiguée, {{ .user }}. Les renards se blottissent, les
-      chouettes s'endorment. Fais pareil !
-    - Même les furries nocturnes se déconnectent, {{ .user }}. Toi, mon ami, tu
-      es en retard pour dormir.
-    - Ne résiste pas, {{ .user }}. Les couvertures douillettes t'attendent. Dors
-      !
+    - Hé {{ .user }}, il est l'heure de dormir ! Sauf si tu es un hibou, alors dors debout.
+    - Il est bien trop tard, {{ .user }}. Même les loups-garous sont déjà au lit. Va dormir !
+    - Imagine comme tu te sentiras bien demain si tu dors maintenant, {{ .user }}. Au lit !
+    - La lune est fatiguée, {{ .user }}. Les renards se blottissent, les chouettes s'endorment. Fais pareil !
+    - Même les furries nocturnes se déconnectent, {{ .user }}. Toi, mon ami, tu es en retard pour dormir.
+    - Ne résiste pas, {{ .user }}. Les couvertures douillettes t'attendent. Dors !
     - Ne veille pas trop tard, {{ .user }}. Bien dormir, c'est important !
     - Plus d'excuses, {{ .user }} ! Au lit, avant que je ne commence à compter...
-    - Si tu ne dors pas maintenant, {{ .user }}, ton futur toi ne sera pas
-      content demain matin.
-    - Ta queue traîne, {{ .user }}. C'est un signe de fatigue. Allez, au lit,
-      boule de poils !
-    - Tes pattes doivent être fatiguées de faire défiler, {{ .user }}.
-      Repose-les, va au lit !
-    - Tu es encore debout, {{ .user }} ? Faut-il que je te tape avec un oreiller
-      ? Dors maintenant !
+    - Si tu ne dors pas maintenant, {{ .user }}, ton futur toi ne sera pas content demain matin.
+    - Ta queue traîne, {{ .user }}. C'est un signe de fatigue. Allez, au lit, boule de poils !
+    - Tes pattes doivent être fatiguées de faire défiler, {{ .user }}. Repose-les, va au lit !
+    - Tu es encore debout, {{ .user }} ? Faut-il que je te tape avec un oreiller ? Dors maintenant !
   early:
-    - "{{ .user }}, même les ratons laveurs viennent de se coucher. Tu veux
-      prendre le quart de nuit ? Dors !"
-    - "{{ .user }}, tu t'es réveillé avant même les oiseaux. C'est pas naturel.
-      Dors encore un peu."
-    - Debout et brille—attends, non ! Pas encore, {{ .user }} ! La lune veille
-      encore, retourne dormir.
-    - Euh, {{ .user }}… T'as buggé ? Tu n'étais pas censé te réveiller. Tente un
-      redémarrage... au lit.
-    - Hé {{ .user }}, enfin réveillé... Tu essayais de dormir, non ? T'es arrivé
-      sur ce serveur Discord, comme nous, et ce furry là-bas.
-    - Hé {{ .user }}, pourquoi es-tu réveillé ? Même les loups dorment encore
-      dans leurs tanières. Retourne dormir !
-    - Hé {{ .user }}, retourne au lit ! Il est bien trop tôt.
-    - Hé {{ .user }}, retourne dans ton terrier ! Le soleil n'est pas encore
-      levé, toi non plus.
-    - Le soleil n'est même pas levé, {{ .user }}. Tu es sûr de ne pas être une
-      chouette en secret ? Retourne au lit !
+    - "{{ .user }}, même les ratons laveurs viennent de se coucher. Tu veux prendre le quart de nuit ? Dors !"
+    - "{{ .user }}, tu t'es réveillé avant même les oiseaux. C'est pas naturel. Dors encore un peu."
+    - Debout et brille—attends, non ! Pas encore, {{ .user }} ! La lune veille encore, retourne dormir.
+    - Euh, {{ .user }}… T'as buggé ? Tu n'étais pas censé te réveiller. Tente un redémarrage... au lit.
+    - Hé {{ .user }}, enfin réveillé... Tu essayais de dormir, non ? T'es arrivé sur ce serveur Discord, comme nous, et ce furry là-bas.
+    - Hé {{ .user }}, pourquoi es-tu réveillé ? Même les loups dorment encore dans leurs tanières. Retourne dormir !
+    - Hé {{ .user }}, retourne au lit ! Il est bien trop tôt. 
+    - Hé {{ .user }}, retourne dans ton terrier ! Le soleil n'est pas encore levé, toi non plus.
+    - Le soleil n'est même pas levé, {{ .user }}. Tu es sûr de ne pas être une chouette en secret ? Retourne au lit !
     - Oh {{ .user }}, tu es réveillé ! Tu essayais de traverser la frontière...
-    - Psst, {{ .user }}... Tu es debout bien trop tôt. Les furries nocturnes
-      dorment encore, retourne au lit !
-    - Retourne au lit, {{ .user }} ! Même les créatures nocturnes finissent leur
-      service.
-    - Tu es bien matinal aujourd'hui, {{ .user }}. Tu devrais peut-être
-      rattraper quelques heures de sommeil ?
-    - Wow, {{ .user }}. Les lève-tôt ont peut-être le ver, mais le renard
-      fatigué a plus de sommeil. Dors encore !
+    - Psst, {{ .user }}... Tu es debout bien trop tôt. Les furries nocturnes dorment encore, retourne au lit !
+    - Retourne au lit, {{ .user }} ! Même les créatures nocturnes finissent leur service.
+    - Tu es bien matinal aujourd'hui, {{ .user }}. Tu devrais peut-être rattraper quelques heures de sommeil ?
+    - Wow, {{ .user }}. Les lève-tôt ont peut-être le ver, mais le renard fatigué a plus de sommeil. Dors encore !
 my/timezone/get:
   success: Ton fuseau horaire actuel est {{ .zone }}.
-  missing:
-    Tu n'as pas encore défini de fuseau horaire. Utilise `/my timezone set`
-    pour en ajouter un.
+  missing: Tu n'as pas encore défini de fuseau horaire. Utilise `/my timezone set` pour en ajouter un.
 my/timezone/set:
   success: Ton fuseau horaire est maintenant défini sur {{ .zone }}.
-  invalid:
-    Je ne reconnais pas ce fuseau horaire. Utilise un des noms proposés ou
-    trouve ton fuseau horaire dans [la base IANA
-    ici](https://data.iana.org/time-zones/code/zone1970.tab).
+  invalid: Je ne reconnais pas ce fuseau horaire. Utilise un des noms proposés ou trouve ton fuseau horaire dans [la base IANA ici](https://data.iana.org/time-zones/code/zone1970.tab).
 quote:
   missing:
-    - Cet utilisateur n'a pas de citations. On dirait qu'il n'a rien dit
-      d'intéressant.
+    - Cet utilisateur n'a pas de citations. On dirait qu'il n'a rien dit d'intéressant.
     - Pas une miette de citation ici ! Ce p'tit poilu garde tout pour lui.
     - Rien du tout ! Ce renard n'a encore rien laissé échapper.
     - Silence radio ! On dirait qu'ils préfèrent miauler dans l'ombre.
@@ -126,85 +86,53 @@ delete:
   success: Cette citation a disparu de la surface de la Terre.
 find:
   empty: Je n'ai trouvé aucune citation correspondant à ta recherche.
-  hasMore:
-    Il y a plus de citations qui correspondent à ta recherche. Si tu en as
-    une précise en tête, essaie d'être plus spécifique.
+  hasMore: Il y a plus de citations qui correspondent à ta recherche. Si tu en as une précise en tête, essaie d'être plus spécifique.
 reminder/set:
   format:
-    Je ne comprends pas l'heure que tu as donnée. Utilise un format comme «
-    demain 9h30 », « dans 3 jours » ou une date et heure exacte.
-  past: Heu... Je ne peux pas te rappeler de faire quelque chose dans le passé !
-    Je n'ai pas encore de machine à voyager dans le temps.
-  timezone: Je ne peux pas encore te rappeler des choses, car je ne connais pas
-    ton fuseau horaire. Merci d'en définir un d'abord.
-  success: Ton rappel est programmé ! Je te le rappellerai à {{ .time }}. Pour
-    l'annuler, utilise l'ID {{ .id }}.
+    Je ne comprends pas l'heure que tu as donnée. Utilise un format comme « demain 9h30 », « dans 3 jours » ou une date et heure exacte.
+  past: Heu... Je ne peux pas te rappeler de faire quelque chose dans le passé ! Je n'ai pas encore de machine à voyager dans le temps.
+  timezone: Je ne peux pas encore te rappeler des choses, car je ne connais pas ton fuseau horaire. Merci d'en définir un d'abord.
+  success: Ton rappel est programmé ! Je te le rappellerai à {{ .time }}. Pour l'annuler, utilise l'ID {{ .id }}.
 reminder/list:
-  empty: Il n'y a pas de rappels dans ce canal pour l'instant... À moins que tu
-    n'en crées un ?
-  hasMore: Il y a plus de rappels que je ne peux afficher ici. Tu dois être
-    vraiment occupé !
+  empty: Il n'y a pas de rappels dans ce canal pour l'instant... À moins que tu n'en crées un ?
+  hasMore: Il y a plus de rappels que je ne peux afficher ici. Tu dois être vraiment occupé !
 reminder/cancel:
   success: Le rappel ID {{ .id }} a été annulé. Pfiou ! Parti comme un nuage de poils.
-  missing: Hmm, je ne trouve pas de rappel avec cet ID. Il a peut-être filé à
-    toute patte ?
+  missing: Hmm, je ne trouve pas de rappel avec cet ID. Il a peut-être filé à toute patte ?
 reminder/notif:
   - Hé {{ .name }}, voilà ton rappel tout poilu pour {{ .content }} !
-  - Coup de patte amical, {{ .name }} ! Tu voulais un rappel pour {{ .content
-    }}. C'est tout prêt !
-  - Salut, petite boule de poils {{ .name }} ! N'oublie pas {{ .content }}.
-    Miaou de rien !
-  - Houp houp, {{ .name }} ! Ton rappel pour {{ .content }} est arrivé. Ça sent
-    le succès !
-  - P'tit couinement pour toi, {{ .name }} ! Voici ton rappel à propos de {{
-    .content }}. Bonne chasse !
+  - Coup de patte amical, {{ .name }} ! Tu voulais un rappel pour {{ .content }}. C'est tout prêt !
+  - Salut, petite boule de poils {{ .name }} ! N'oublie pas {{ .content }}. Miaou de rien !
+  - Houp houp, {{ .name }} ! Ton rappel pour {{ .content }} est arrivé. Ça sent le succès !
+  - P'tit couinement pour toi, {{ .name }} ! Voici ton rappel à propos de {{ .content }}. Bonne chasse !
 my/birthday/set:
-  no_channel:
-    Ce serveur n'a pas activé les notifications d'anniversaire. Demande
-    à ton admin si tu veux les avoir ici !
-  timezone: Tu n'as pas encore défini de fuseau horaire. Utilise `/my timezone
-    set` pour en choisir un.
+  no_channel: Ce serveur n'a pas activé les notifications d'anniversaire. Demande à ton admin si tu veux les avoir ici !
+  timezone: Tu n'as pas encore défini de fuseau horaire. Utilise `/my timezone set` pour en choisir un.
   success: Ton anniversaire est enregistré ! 🎂
 my/birthday/clear:
   success: Ton anniversaire a été supprimé. Pas de gâteau cette fois... 😿
 my/birthday/notif:
-  - 🎂 Bon Annif, {{ .name }} ! Que ta journée soit pleine de câlins et de
-    biscuits ! 🐾
-  - 🐾 Joyeux Anniversaire, {{ .name }} ! Prépare-toi pour une journée toute en
-    ronrons et pitreries ! 🎉
-  - 🎁 Une année de plus, une nouvelle aventure de poilu ! Joyeux Annif, {{
-    .name }} ! 🐾
-  - 🐾 Wouf wouf ! C'est ta journée, {{ .name }} ! Prêt pour une orgie de gâteau
-    ? 🎂
-  - 🎉 Plein de léchouilles et câlins pour toi aujourd'hui, {{ .name }} ! Passe
-    une journée toute douce !
-  - 🐾 Joyeux Miaouniversaire, {{ .name }} ! Que tes croquettes soient
-    croustillantes et tes siestes douillettes ! 🎂
-  - �� Fais-toi plaisir aujourd'hui, {{ .name }} ! C'est une journée à abuser
-    des biscuits ! 🐾
-  - 🎂 Bon Anniversaire, {{ .name }} ! Que ta journée soit aussi douce qu'un bon
-    grattouillage derrière les oreilles !
-  - 🐾 Passe une journée renversante pleine de joie et de roulades, {{ .name }}
-    ! 🎉
-  - 🎉 Joyeux Annif, {{ .name }} ! Profite de cette journée comme un chiot
-    découvrant une nouvelle peluche ! 🐾
+  - 🎂 Bon Annif, {{ .name }} ! Que ta journée soit pleine de câlins et de biscuits ! 🐾
+  - 🐾 Joyeux Anniversaire, {{ .name }} ! Prépare-toi pour une journée toute en ronrons et pitreries ! 🎉
+  - 🎁 Une année de plus, une nouvelle aventure de poilu ! Joyeux Annif, {{ .name }} ! 🐾
+  - 🐾 Wouf wouf ! C'est ta journée, {{ .name }} ! Prêt pour une orgie de gâteau ? 🎂
+  - 🎉 Plein de léchouilles et câlins pour toi aujourd'hui, {{ .name }} ! Passe une journée toute douce !
+  - 🐾 Joyeux Miaouniversaire, {{ .name }} ! Que tes croquettes soient croustillantes et tes siestes douillettes ! 🎂
+  - Fais-toi plaisir aujourd'hui, {{ .name }} ! C'est une journée à abuser des biscuits ! 🐾
+  - 🎂 Bon Anniversaire, {{ .name }} ! Que ta journée soit aussi douce qu'un bon grattouillage derrière les oreilles !
+  - 🐾 Passe une journée renversante pleine de joie et de roulades, {{ .name }} ! 🎉
+  - 🎉 Joyeux Annif, {{ .name }} ! Profite de cette journée comme un chiot découvrant une nouvelle peluche ! 🐾
 my/settings/mentions:
   set: Très bien ! Je ne vous mentionnerai plus si quelqu'un utilise des commandes sur vous.
   unset: C'est trop calme, non ? Je recommencerai à vous mentionner si quelqu'un utilise des commandes sur vous.
 report:
-  notAvailable: Oups ! Ce serveur n'a pas activé la commande de signalement.
-    Essaie d'envoyer un MP à un modérateur en ligne.
-  invalidImage:
-    Hmm, cette capture d'écran n'a pas l'air d'être une image valide.
-    Essaie encore, boule de poils !
+  notAvailable: Oups ! Ce serveur n'a pas activé la commande de signalement. Essaie d'envoyer un MP à un modérateur en ligne.
+  invalidImage: Hmm, cette capture d'écran n'a pas l'air d'être une image valide. Essaie encore, boule de poils !
   title: Signalement Reçu - On y jette un coup d'œil !
   originator: "Signalé par : "
   location: "Problème à : "
   target: "Signalé contre : "
-  success:
-    Ton signalement a été envoyé ! Les modérateurs vont s'en occuper. On te
-    contactera si on a besoin de plus d'infos. Merci de garder la tanière douce
-    et sécuritaire !
+  success: Ton signalement a été envoyé ! Les modérateurs vont s'en occuper. On te contactera si on a besoin de plus d'infos. Merci de garder la tanière douce et sécuritaire !
 flip:
   heads: pile
   tails: face
@@ -212,14 +140,12 @@ flip:
     - Tu as lancé une pièce et... c'est **{{ .result }}** ! 🪙
     - La pièce vole, tournoie et... hop ! **{{ .result }}** !
     - Pile ou face ? Et le gagnant est... **{{ .result }}** !
-    - Tu lances la pièce bien haut et... **{{ .result }}** ! Quelle patte
-      chanceuse !
+    - Tu lances la pièce bien haut et... **{{ .result }}** ! Quelle patte chanceuse !
     - La pièce danse dans l'air et atterrit sur... **{{ .result }}** !
   failure:
     - Oups ! La pièce a filé sous le canapé. Pas de résultat cette fois !
     - Ah non ! La pièce s'est volatilisée. On dirait qu'elle refuse de choisir !
-    - Et voilà, la pièce est partie en expédition sous les meubles. Mystère
-      total !
+    - Et voilà, la pièce est partie en expédition sous les meubles. Mystère total !
 roll:
   success:
     - 🎲 Tu as lancé un dé à {{ .sides }} faces et obtenu un **{{ .result }}** !
@@ -228,18 +154,13 @@ roll:
     - Hop là ! **{{ .result }}** sur {{ .sides }}. T'as la patte chanceuse ! 🐾
     - Le dé roule, roule et... **{{ .result }}** ! Quelle belle lancée !
   tooManySides:
-    - Oups ! Ce dé a tellement de faces qu'il roule encore... On dirait une
-      balle maintenant !
-    - Ah non ! Avec {{ .sides }} faces, ton dé a décidé de vivre sa meilleure
-      vie. Bon courage pour le retrouver !
-    - Oh là là ! Ce dé est plus rond qu’un ballon. Ça risque de rouler pour
-      toujours !
+    - Oups ! Ce dé a tellement de faces qu'il roule encore... On dirait une balle maintenant !
+    - Ah non ! Avec {{ .sides }} faces, ton dé a décidé de vivre sa meilleure vie. Bon courage pour le retrouver !
+    - Oh là là ! Ce dé est plus rond qu’un ballon. Ça risque de rouler pour toujours !
   tooFewSides:
-    - Euh... Un dé avec {{ .sides }} faces ? Ça ressemble plus à une pièce de
-      monnaie ou à une idée abstraite !
+    - Euh... Un dé avec {{ .sides }} faces ? Ça ressemble plus à une pièce de monnaie ou à une idée abstraite !
     - Hmm, un dé a besoin d’au moins 3 faces. Sinon, tu fais juste pile ou face !
-    - Avec {{ .sides }} faces, ce n'est pas un dé, c'est un exercice
-      philosophique. Essaie encore !
+    - Avec {{ .sides }} faces, ce n'est pas un dé, c'est un exercice philosophique. Essaie encore !
 bap: 
   self:
     - "{{ .author }} a l'air déterminé·e, lève {{ .object }} et se bap... directement sur le {{ .body_part }}. Bravo !"

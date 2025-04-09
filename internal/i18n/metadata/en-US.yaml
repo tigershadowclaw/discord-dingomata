@@ -19,8 +19,7 @@ my/bedtime:
 my/bedtime/set:
   name: set
   description:
-    Set a bedtime for yourself. I'll remind you to go to bed if you're
-    still active after this time.
+    Set a bedtime for yourself. I'll remind you to go to bed if you're still active after this time.
   options:
     time:
       name: time
@@ -134,8 +133,7 @@ reminder/set:
     time:
       name: time
       description:
-        Time to be reminded at. For example, tomorrow 10am, in 2 hours, or
-        an exact date and time.
+        Time to be reminded at. For example, tomorrow 10am, in 2 hours, or an exact date and time.
     message:
       name: message
       description: What do you want to be reminded about?

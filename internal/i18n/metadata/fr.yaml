@@ -18,8 +18,7 @@ my/bedtime:
   name: heure_de_coucher
 my/bedtime/set:
   name: definir
-  description: Définis une heure de coucher. Je te rappellerai d'aller au lit si
-    tu es encore actif.
+  description: Définis une heure de coucher. Je te rappellerai d'aller au lit si tu es encore actif.
   options:
     time:
       name: heure
@@ -34,8 +33,7 @@ my/timezone:
   name: fuseau_horaire
 my/timezone/set:
   name: definir
-  description: Définis ton fuseau horaire. Il sera utilisé sur tous les serveurs
-    avec ce bot.
+  description: Définis ton fuseau horaire. Il sera utilisé sur tous les serveurs avec ce bot.
   options:
     zone:
       name: zone
@@ -106,8 +104,7 @@ reminder/set:
     time:
       name: heure
       description:
-        Heure du rappel. Par exemple, demain à 10h, dans 2 heures ou une
-        date précise.
+        Heure du rappel. Par exemple, demain à 10h, dans 2 heures ou une date précise.
     message:
       name: message
       description: De quoi veux-tu te rappeler ?
@@ -141,8 +138,7 @@ report:
       description: Téléverse ou colle une capture d'écran montrant le problème.
     comment:
       name: commentaire
-      description: Toute information supplémentaire que tu souhaites fournir aux
-        modérateurs.
+      description: Toute information supplémentaire que tu souhaites fournir aux modérateurs.
 flip:
   name: pile_ou_face
   description: Lance une pièce.

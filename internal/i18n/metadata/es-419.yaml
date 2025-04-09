@@ -105,8 +105,7 @@ reminder/set:
     time:
       name: hora
       description:
-        Hora para el recordatorio. Por ejemplo, mañana a las 10am, en 2
-        horas o una fecha y hora exactas.
+        Hora para el recordatorio. Por ejemplo, mañana a las 10am, en 2 horas o una fecha y hora exactas.
     message:
       name: mensaje
       description: ¿De qué quieres que te recuerde?
@@ -123,8 +122,7 @@ reminder/list:
 report:
   name: reportar
   description:
-    Reporta comportamientos inapropiados o no deseados de forma privada
-    a los moderadores.
+    Reporta comportamientos inapropiados o no deseados de forma privada a los moderadores.
   options:
     user:
       name: usuario
