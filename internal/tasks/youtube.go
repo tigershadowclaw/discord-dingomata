@@ -71,19 +71,22 @@ var youtubeNotificationTask = PeriodicTask{
 				// Get youtube videos
 				ctx.Logger.Debug().Str("guild_id", guildId).Str("playlist", playlist).Msg("Checking for new Youtube videos.")
 
-				videos, err := yt.List([]string{"snippet", "contentDetails"}).PlaylistId(playlist).MaxResults(5).Do()
+				videos, err := yt.List([]string{"snippet", "contentDetails", "status"}).PlaylistId(playlist).MaxResults(5).Do()
 				if err != nil {
 					ctx.Logger.Error().Err(err).Str("guild_id", guildId).Str("channel_id", playlist).Msg("Failed to get Youtube videos")
 					continue
 				}
 				lastKnownPublishedAt := lastPublishedMap[playlist]
 
-				// Youtube returns videos in reverse chronological order. First video tells us if there are any new videos.
-				if len(videos.Items) == 0 {
+				// Find first video (latest chronologically) that is public
+				publicVideos := lo.Filter(videos.Items, func(video *youtube.PlaylistItem, _ int) bool {
+					return video.Status.PrivacyStatus == "public"
+				})
+				if len(publicVideos) == 0 {
 					ctx.Logger.Warn().Str("guild_id", guildId).Str("youtube_channel_id", playlist).Msg("Youtube query returned no videos.")
 					continue
 				}
-				latestVideoPublishedAt, err := time.Parse(time.RFC3339, videos.Items[0].Snippet.PublishedAt)
+				latestVideoPublishedAt, err := time.Parse(time.RFC3339, publicVideos[0].Snippet.PublishedAt)
 				if err != nil {
 					ctx.Logger.Error().Err(err).Str("guild_id", guildId).Any("data", videos.Items).Msg("Failed to parse Youtube video publishedAt time.")
 					continue
@@ -95,7 +98,7 @@ var youtubeNotificationTask = PeriodicTask{
 					continue
 				} else if latestVideoPublishedAt.After(lastKnownPublishedAt) {
 					// There are new videos!
-					newVideos := lo.Filter(videos.Items, func(video *youtube.PlaylistItem, _ int) bool {
+					newVideos := lo.Filter(publicVideos, func(video *youtube.PlaylistItem, _ int) bool {
 						t, err := time.Parse(time.RFC3339, video.Snippet.PublishedAt)
 						return err == nil && t.After(lastKnownPublishedAt)
 					})
