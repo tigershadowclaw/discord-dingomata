@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"snoozybot/internal/config"
@@ -64,89 +65,99 @@ var bskyNotificationTask = PeriodicTask{
 		if err := bskyRefreshSession(tctx); err != nil {
 			return err
 		}
-		users := config.BskyNotifUsers.GetAll()
+		guildUsers := config.BskyNotifUsers.GetAll() // guildId -> users[]
 		channels := config.BskyNotifChannelID.GetAll()
 		templates := config.BskyNotifTemplate.GetAll()
 
-		for guildId, bskyUsers := range users {
-			users, err := bskyUsers.Value()
+		// Reverse map into user -> guildId[]
+		// This way each user is only checked once even if they're in multiple guilds
+		userGuilds := make(map[string][]string)
+		for guildId, users := range guildUsers {
+			users, err := users.Value()
 			if err != nil {
 				tctx.Logger.Error().Err(err).Str("guild_id", guildId).Msg("Failed to parse bluesky user IDs.")
 				continue
 			}
-			channelId, err := channels[guildId].Value()
-			if err != nil {
-				tctx.Logger.Error().Err(err).Str("guild_id", guildId).Msg("Failed to parse channel id.")
-				continue
-			}
-			tmplConfig, ok := templates[guildId]
-			if !ok {
-				tctx.Logger.Error().Str("guild_id", guildId).Msg("No template config found.")
-				continue
-			}
-			tmplStr, err := tmplConfig.Value()
-			if err != nil {
-				tctx.Logger.Error().Err(err).Str("guild_id", guildId).Msg("Failed to parse template.")
-				continue
-			}
-			tmpl, err := template.New("bsky_notif").Parse(tmplStr)
-			if err != nil {
-				tctx.Logger.Error().Err(err).Str("guild_id", guildId).Msg("Failed to create template for bsky notification.")
-				continue
-			}
-			bot, ok := tctx.BotManager.GuildBots[guildId]
-			if !ok {
-				tctx.Logger.Error().Str("guild_id", guildId).Msg("No bot found for guild.")
-				continue
-			}
-
 			for _, user := range users {
-				// Get user's last 5 posts
-				posts, err := bsky.FeedGetAuthorFeed(tctx.Context, bskyClient, user, "", "posts_no_replies", false, 5)
-				if err != nil {
-					tctx.Logger.Error().Err(err).Str("guild_id", guildId).Str("user", user).Msg("Failed to get user's latest posts.")
-					continue
-				}
-				if len(posts.Feed) == 0 {
-					tctx.Logger.Warn().Str("guild_id", guildId).Str("user", user).Msg("No posts found for user.")
-					continue
-				}
-				lastPost := posts.Feed[0].Post.Record.Val.(*bsky.FeedPost)
-				tctx.Logger.Debug().Str("guild_id", guildId).Str("user", user).Any("last_post", lastPost).Msg("Got latest bluesky post.")
-				createdAt, err := time.Parse(time.RFC3339, lastPost.CreatedAt)
-				if err != nil {
-					tctx.Logger.Error().Err(err).Str("guild_id", guildId).Str("user", user).Msg("Failed to parse post creation time.")
-					continue
-				}
-				if userLastKnownPosts[user].IsZero() {
-					// first run; record the most recent post
-					tctx.Logger.Info().Str("guild_id", guildId).Str("user", user).Time("created_at", createdAt).Msg("Found initial bluesky post.")
-					userLastKnownPosts[user] = createdAt
-					continue
-				} else if createdAt.After(userLastKnownPosts[user]) {
-					// new posts! find all new ones
-					newPosts := lo.Filter(posts.Feed, func(post *bsky.FeedDefs_FeedViewPost, _ int) bool {
-						createdAt, err := time.Parse(time.RFC3339, post.Post.Record.Val.(*bsky.FeedPost).CreatedAt)
-						if err != nil {
-							tctx.Logger.Error().Err(err).Str("guild_id", guildId).Str("user", user).Msg("Failed to parse post creation time.")
-							return false
-						}
-						return createdAt.After(userLastKnownPosts[user])
-					})
-					for _, post := range newPosts {
-						postId, ok := lo.Last(strings.Split(post.Post.Uri, "/"))
-						if !ok {
-							tctx.Logger.Error().Str("guild_id", guildId).Str("user", user).Str("post_uri", post.Post.Uri).Msg("Failed to parse post ID.")
-							continue
-						}
-						content := i18n.TemplateString(tmpl, &i18n.Vars{"url": fmt.Sprintf("https://bsky.app/profile/%s/post/%s", post.Post.Author.Handle, postId)})
-						tctx.Logger.Info().Str("guild_id", guildId).Str("user", user).Str("content", content).Msg("New bluesky post found, sending notification.")
-						bot.ChannelMessageSend(string(channelId), content)
+				userGuilds[user] = append(userGuilds[user], guildId)
+			}
+		}
+
+		for user, guildIds := range userGuilds {
+			// Get user's last 5 posts
+			posts, err := bsky.FeedGetAuthorFeed(tctx.Context, bskyClient, user, "", "posts_no_replies", false, 5)
+			if err != nil {
+				tctx.Logger.Error().Err(err).Str("user", user).Msg("Failed to get user's latest posts.")
+				continue
+			}
+			if len(posts.Feed) == 0 {
+				tctx.Logger.Warn().Str("user", user).Msg("No posts found for user.")
+				continue
+			}
+			tctx.Logger.Trace().Any("posts", posts.Feed).Msg("Got bluesky posts.")
+			lastPostCreated, err := time.Parse(time.RFC3339, posts.Feed[0].Post.Record.Val.(*bsky.FeedPost).CreatedAt)
+			if err != nil {
+				tctx.Logger.Error().Err(err).Str("user", user).Msg("Failed to parse post creation time.")
+				continue
+			}
+			if userLastKnownPosts[user].IsZero() {
+				// first run; record the most recent post
+				tctx.Logger.Info().Str("user", user).Time("created_at", lastPostCreated).Msg("Found initial bluesky post.")
+				userLastKnownPosts[user] = lastPostCreated
+				continue
+			} else if lastPostCreated.After(userLastKnownPosts[user]) {
+				// new posts! find all new ones in case more than one
+				newPosts := lo.Filter(posts.Feed, func(post *bsky.FeedDefs_FeedViewPost, _ int) bool {
+					createdAt, err := time.Parse(time.RFC3339, post.Post.Record.Val.(*bsky.FeedPost).CreatedAt)
+					if err != nil {
+						tctx.Logger.Error().Err(err).Str("user", user).Any("post", post.Post.Record).Msg("Failed to parse post creation time.")
+						return false
 					}
-					userLastKnownPosts[user] = createdAt
+					return createdAt.After(userLastKnownPosts[user])
+				})
+				userLastKnownPosts[user] = lastPostCreated
+
+				for _, post := range newPosts {
+					for _, guildId := range guildIds {
+						_sendBskyNotification(tctx, user, guildId, channels[guildId], templates[guildId], post)
+					}
 				}
 			}
 		}
 		return nil
 	},
+}
+
+func _sendBskyNotification(tctx *TaskData, user string, guildId string, channel *config.ConfigValue[json.Number], tmplConfig *config.ConfigValue[string], post *bsky.FeedDefs_FeedViewPost) {
+	channelId, err := channel.Value()
+	if err != nil {
+		tctx.Logger.Error().Err(err).Str("guild_id", guildId).Msg("Failed to parse channel id.")
+		return
+	}
+	tmplStr, err := tmplConfig.Value()
+	if err != nil {
+		tctx.Logger.Error().Err(err).Str("guild_id", guildId).Msg("Failed to parse template.")
+		return
+	}
+	tmpl, err := template.New("bsky_notif").Parse(tmplStr)
+	if err != nil {
+		tctx.Logger.Error().Err(err).Str("guild_id", guildId).Msg("Failed to create template for bsky notification.")
+		return
+	}
+	bot, ok := tctx.BotManager.GuildBots[guildId]
+	if !ok {
+		tctx.Logger.Error().Str("guild_id", guildId).Msg("No bot found for guild.")
+		return
+	}
+	postId, ok := lo.Last(strings.Split(post.Post.Uri, "/"))
+	if !ok {
+		tctx.Logger.Error().Str("user", user).Str("post_uri", post.Post.Uri).Msg("Failed to parse post ID.")
+		return
+	}
+	content := i18n.TemplateString(tmpl, &i18n.Vars{"url": fmt.Sprintf("https://bsky.app/profile/%s/post/%s", post.Post.Author.Handle, postId)})
+	if _, err := bot.ChannelMessageSend(string(channelId), content); err != nil {
+		tctx.Logger.Error().Err(err).Str("guild_id", guildId).Str("user", user).Msg("Failed to send bluesky notification.")
+	} else {
+		tctx.Logger.Info().Str("guild_id", guildId).Str("user", user).Str("content", content).Msg("Found new bluesky post, sent notification.")
+	}
 }
