@@ -104,7 +104,7 @@ var bskyNotificationTask = PeriodicTask{
 				// Get user's last 5 posts
 				posts, err := bsky.FeedGetAuthorFeed(tctx.Context, bskyClient, user, "", "posts_no_replies", false, 5)
 				if err != nil {
-					tctx.Logger.Error().Err(err).Str("guild_id", guildId).Str("user", user).Msg("Failed to get user's last 5 posts.")
+					tctx.Logger.Error().Err(err).Str("guild_id", guildId).Str("user", user).Msg("Failed to get user's latest posts.")
 					continue
 				}
 				if len(posts.Feed) == 0 {
@@ -143,6 +143,7 @@ var bskyNotificationTask = PeriodicTask{
 						tctx.Logger.Info().Str("guild_id", guildId).Str("user", user).Str("content", content).Msg("New bluesky post found, sending notification.")
 						bot.ChannelMessageSend(string(channelId), content)
 					}
+					userLastKnownPosts[user] = createdAt
 				}
 			}
 		}
