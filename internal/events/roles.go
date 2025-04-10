@@ -14,8 +14,8 @@ import (
 
 func roleMessageMetricsHandler(d EventData[dg.MessageCreate]) error {
 	// Make sure regulars role is turned on for the server first
-	roleId, err := config.RolesRegularsRoleID.Get(d.Event.GuildID).Value()
-	if err != nil || roleId == "" {
+	roleId, _ := config.RolesRegularsRoleID.Get(d.Event.GuildID).Value()
+	if roleId == "" {
 		return nil
 	}
 	roleIdStr := string(roleId)
@@ -51,9 +51,9 @@ func roleMessageMetricsHandler(d EventData[dg.MessageCreate]) error {
 	}
 
 	// If the role is automated, check if the user should be given the role
-	isAuto, err := config.RolesRegularsAutoAssign.Get(d.Event.GuildID).Value()
-	if err != nil || !isAuto {
-		return err
+	isAuto, _ := config.RolesRegularsAutoAssign.Get(d.Event.GuildID).Value()
+	if !isAuto {
+		return nil
 	}
 	d.Event.Member.User = d.Event.Author // the lib doesnt fill this
 	commands.TryAssignRegularsRole(d.Event.GuildID, d.Event.Member, d.Logger, d.Session)

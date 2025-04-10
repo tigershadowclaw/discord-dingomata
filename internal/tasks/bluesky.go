@@ -100,12 +100,14 @@ var bskyNotificationTask = PeriodicTask{
 				tctx.Logger.Error().Err(err).Str("user", user).Msg("Failed to parse post creation time.")
 				continue
 			}
-			if userLastKnownPosts[user].IsZero() {
+			lastKnownPost := userLastKnownPosts[user]
+			if lastKnownPost.IsZero() {
 				// first run; record the most recent post
 				tctx.Logger.Info().Str("user", user).Time("created_at", lastPostCreated).Msg("Found initial bluesky post.")
 				userLastKnownPosts[user] = lastPostCreated
 				continue
-			} else if lastPostCreated.After(userLastKnownPosts[user]) {
+			} else if lastPostCreated.After(lastKnownPost) {
+				tctx.Logger.Debug().Str("user", user).Time("last_known_post", lastKnownPost).Time("new_posts", lastPostCreated).Msg("Found new bluesky post.")
 				// new posts! find all new ones in case more than one
 				newPosts := lo.Filter(posts.Feed, func(post *bsky.FeedDefs_FeedViewPost, _ int) bool {
 					createdAt, err := time.Parse(time.RFC3339, post.Post.Record.Val.(*bsky.FeedPost).CreatedAt)
@@ -113,9 +115,9 @@ var bskyNotificationTask = PeriodicTask{
 						tctx.Logger.Error().Err(err).Str("user", user).Any("post", post.Post.Record).Msg("Failed to parse post creation time.")
 						return false
 					}
-					return createdAt.After(userLastKnownPosts[user])
+					return createdAt.After(lastKnownPost)
 				})
-				userLastKnownPosts[user] = lastPostCreated
+				userLastKnownPosts[user] = lastPostCreated.Add(5 * time.Second) // a buffer to guard against rounding issues?
 
 				for _, post := range newPosts {
 					for _, guildId := range guildIds {
