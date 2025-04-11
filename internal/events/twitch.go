@@ -33,7 +33,6 @@ func twitchStreamGuildAvailable(d EventData[dg.GuildCreate]) error {
 	d.Logger.Info().Str("guild", d.Event.Guild.ID).Msg("Syncing twitch stream presence for guild on startup.")
 
 	var live []string
-	d.Logger.Debug().Str("guild", d.Event.Guild.ID).Any("presences", d.Event.Guild.Presences).Msg("Presences") // TODO REMOVE
 userPresence:
 	for _, presence := range d.Event.Guild.Presences {
 		// missing is unknown; don't touch it
@@ -59,7 +58,7 @@ userPresence:
 }
 
 func twitchStreamPresenceUpdate(d EventData[dg.PresenceUpdate]) error {
-	d.Logger.Debug().Any("presence", d.Event).Msg("Received presence update.")
+	d.Logger.Trace().Any("presence", d.Event).Msg("Received presence update.")
 
 	streamingRoleID, _ := config.TwitchLiveRoleID.Get(d.Event.GuildID).Value()
 	channelID, _ := config.TwitchLiveChannelID.Get(d.Event.GuildID).Value()
