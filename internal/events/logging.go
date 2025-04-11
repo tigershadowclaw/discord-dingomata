@@ -145,27 +145,34 @@ func logLeave(d EventData[dg.GuildMemberRemove]) error {
 	return nil
 }
 
+func _effectiveTimeout(member *dg.Member) time.Time {
+	if member.CommunicationDisabledUntil != nil && member.CommunicationDisabledUntil.After(time.Now()) {
+		return *member.CommunicationDisabledUntil
+	}
+	return time.Time{}
+}
+
 func logTimeout(d EventData[dg.GuildMemberUpdate]) error {
-	if logChannel, err := config.LogsChannelID.Get(d.Event.GuildID).Value(); err == nil {
-		if d.Event.BeforeUpdate != nil &&
-			d.Event.CommunicationDisabledUntil != nil &&
-			d.Event.CommunicationDisabledUntil.After(time.Now()) &&
-			d.Event.CommunicationDisabledUntil != d.Event.BeforeUpdate.CommunicationDisabledUntil {
-			// Timeout set
+	logChannel, err := config.LogsChannelID.Get(d.Event.GuildID).Value()
+	if err == nil && logChannel != "" && d.Event.BeforeUpdate != nil {
+		before := _effectiveTimeout(d.Event.BeforeUpdate)
+		after := _effectiveTimeout(d.Event.Member)
+		if before == after {
+			return nil
+		} else if !after.IsZero() {
+			// Timeout value updated
 			_, err := d.Session.ChannelMessageSendEmbed(string(logChannel), &dg.MessageEmbed{
 				Title: "User Timed Out",
 				Color: 0xFFBE0B,
 				Fields: []*dg.MessageEmbedField{
 					{Name: "User ID", Value: d.Event.User.ID, Inline: true},
 					{Name: "Username", Value: d.Event.User.Username, Inline: true},
-					{Name: "Server Name", Value: d.Event.Member.Nick, Inline: true},
+					{Name: "Nickname", Value: d.Event.Member.Nick, Inline: true},
 					{Name: "Until", Value: fmt.Sprintf("<t:%d:f>", d.Event.CommunicationDisabledUntil.Unix()), Inline: false},
 				},
 			})
 			return err
-		} else if d.Event.BeforeUpdate != nil &&
-			(d.Event.BeforeUpdate.CommunicationDisabledUntil != nil && d.Event.BeforeUpdate.CommunicationDisabledUntil.Before(time.Now())) &&
-			(d.Event.CommunicationDisabledUntil.Before(time.Now()) || d.Event.CommunicationDisabledUntil == nil) {
+		} else if after.IsZero() {
 			// Timeout removed
 			_, err := d.Session.ChannelMessageSendEmbed(string(logChannel), &dg.MessageEmbed{
 				Title: "User Timeout Removed",
@@ -173,7 +180,7 @@ func logTimeout(d EventData[dg.GuildMemberUpdate]) error {
 				Fields: []*dg.MessageEmbedField{
 					{Name: "User ID", Value: d.Event.User.ID, Inline: true},
 					{Name: "Username", Value: d.Event.User.Username, Inline: true},
-					{Name: "Server Name", Value: d.Event.Member.Nick, Inline: true},
+					{Name: "Nickname", Value: d.Event.Member.Nick, Inline: true},
 				},
 			})
 			return err
