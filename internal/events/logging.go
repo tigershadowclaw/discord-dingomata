@@ -38,7 +38,6 @@ func logMessageUpdate(d EventData[dg.MessageUpdate]) error {
 					Title: "Message Updated",
 					Fields: []*dg.MessageEmbedField{
 						{Name: "Channel", Value: fmt.Sprintf("<#%s>", d.Event.ChannelID), Inline: true},
-						{Name: "Author", Value: fmt.Sprintf("<@%s>", cached.Author.ID), Inline: true},
 						{Name: "Originally Sent", Value: fmt.Sprintf("<t:%d:f>", cached.Timestamp.Unix()), Inline: true},
 						{Name: "Message URL", Value: fmt.Sprintf("https://discord.com/channels/%s/%s/%s", d.Event.GuildID, d.Event.ChannelID, d.Event.Message.ID)},
 						{Name: "Previous Content", Value: cached.Content},
@@ -64,7 +63,6 @@ func logMessageDelete(d EventData[dg.MessageDelete]) error {
 				Title: "Message Deleted",
 				Fields: []*dg.MessageEmbedField{
 					{Name: "Channel", Value: fmt.Sprintf("<#%s>", d.Event.ChannelID), Inline: true},
-					{Name: "Author", Value: fmt.Sprintf("<@%s>", cached.Author.ID), Inline: true},
 					{Name: "Sent At", Value: fmt.Sprintf("<t:%d:f>", cached.Timestamp.Unix()), Inline: true},
 					{Name: "Message URL", Value: fmt.Sprintf("https://discord.com/channels/%s/%s/%s", d.Event.GuildID, d.Event.ChannelID, d.Event.Message.ID)},
 					{Name: "Content", Value: cached.Content},
@@ -88,9 +86,10 @@ func logBan(d EventData[dg.GuildBanAdd]) error {
 		auditEntry := waitForAuditLog(auditKey{action: dg.AuditLogActionMemberBanAdd, key: d.Event.User.ID})
 		_, err := d.Session.ChannelMessageSendEmbed(string(logChannel), addAuditLogFields(&dg.MessageEmbed{
 			Title: "User Banned",
-			Color: 0x880000,
+			Color: 0xE63946,
 			Fields: []*dg.MessageEmbedField{
-				{Name: "User", Value: fmt.Sprintf("<@%s>", d.Event.User.ID), Inline: true},
+				{Name: "User ID", Value: d.Event.User.ID, Inline: true},
+				{Name: "Username", Value: d.Event.User.Username, Inline: true},
 			},
 		}, auditEntry))
 		return err
@@ -104,9 +103,10 @@ func logUnban(d EventData[dg.GuildBanRemove]) error {
 		auditEntry := waitForAuditLog(auditKey{action: dg.AuditLogActionMemberBanRemove, key: d.Event.User.ID})
 		_, err := d.Session.ChannelMessageSendEmbed(string(logChannel), addAuditLogFields(&dg.MessageEmbed{
 			Title: "User Unbanned",
-			Color: 0x008800,
+			Color: 0xADC178,
 			Fields: []*dg.MessageEmbedField{
-				{Name: "User", Value: fmt.Sprintf("<@%s>", d.Event.User.ID), Inline: true},
+				{Name: "User ID", Value: d.Event.User.ID, Inline: true},
+				{Name: "Username", Value: d.Event.User.Username, Inline: true},
 			},
 			Thumbnail: &dg.MessageEmbedThumbnail{URL: d.Event.User.AvatarURL("128")},
 		}, auditEntry))
@@ -122,9 +122,10 @@ func logLeave(d EventData[dg.GuildMemberRemove]) error {
 		if auditEntry != nil {
 			_, err := d.Session.ChannelMessageSendEmbed(string(logChannel), addAuditLogFields(&dg.MessageEmbed{
 				Title: "User Kicked",
-				Color: 0x000088,
+				Color: 0xFB5607,
 				Fields: []*dg.MessageEmbedField{
-					{Name: "User", Value: fmt.Sprintf("<@%s>", d.Event.User.ID), Inline: true},
+					{Name: "User ID", Value: d.Event.User.ID, Inline: true},
+					{Name: "Username", Value: d.Event.User.Username, Inline: true},
 				},
 				Thumbnail: &dg.MessageEmbedThumbnail{URL: d.Event.User.AvatarURL("128")},
 			}, auditEntry))
@@ -132,9 +133,10 @@ func logLeave(d EventData[dg.GuildMemberRemove]) error {
 		} else {
 			_, err := d.Session.ChannelMessageSendEmbed(string(logChannel), &dg.MessageEmbed{
 				Title: "User Left",
-				Color: 0x000088,
+				Color: 0xDAD7CD,
 				Fields: []*dg.MessageEmbedField{
-					{Name: "User", Value: fmt.Sprintf("<@%s>", d.Event.User.ID), Inline: true},
+					{Name: "User ID", Value: d.Event.User.ID, Inline: true},
+					{Name: "Username", Value: d.Event.User.Username, Inline: true},
 				},
 			})
 			return err
@@ -145,27 +147,33 @@ func logLeave(d EventData[dg.GuildMemberRemove]) error {
 
 func logTimeout(d EventData[dg.GuildMemberUpdate]) error {
 	if logChannel, err := config.LogsChannelID.Get(d.Event.GuildID).Value(); err == nil {
-		if d.Event.CommunicationDisabledUntil != nil &&
-			d.Event.BeforeUpdate != nil &&
+		if d.Event.BeforeUpdate != nil &&
+			d.Event.CommunicationDisabledUntil != nil &&
 			d.Event.CommunicationDisabledUntil.After(time.Now()) &&
 			d.Event.CommunicationDisabledUntil != d.Event.BeforeUpdate.CommunicationDisabledUntil {
 			// Timeout set
 			_, err := d.Session.ChannelMessageSendEmbed(string(logChannel), &dg.MessageEmbed{
 				Title: "User Timed Out",
-				Color: 0x888800,
+				Color: 0xFFBE0B,
 				Fields: []*dg.MessageEmbedField{
-					{Name: "User", Value: fmt.Sprintf("<@%s>", d.Event.User.ID), Inline: true},
-					{Name: "Until", Value: fmt.Sprintf("<t:%d:f>", d.Event.CommunicationDisabledUntil.Unix()), Inline: true},
+					{Name: "User ID", Value: d.Event.User.ID, Inline: true},
+					{Name: "Username", Value: d.Event.User.Username, Inline: true},
+					{Name: "Server Name", Value: d.Event.Member.Nick, Inline: true},
+					{Name: "Until", Value: fmt.Sprintf("<t:%d:f>", d.Event.CommunicationDisabledUntil.Unix()), Inline: false},
 				},
 			})
 			return err
-		} else if d.Event.CommunicationDisabledUntil == nil && d.Event.BeforeUpdate != nil && d.Event.BeforeUpdate.CommunicationDisabledUntil != nil {
+		} else if d.Event.BeforeUpdate != nil &&
+			(d.Event.BeforeUpdate.CommunicationDisabledUntil != nil && d.Event.BeforeUpdate.CommunicationDisabledUntil.Before(time.Now())) &&
+			(d.Event.CommunicationDisabledUntil.Before(time.Now()) || d.Event.CommunicationDisabledUntil == nil) {
 			// Timeout removed
 			_, err := d.Session.ChannelMessageSendEmbed(string(logChannel), &dg.MessageEmbed{
 				Title: "User Timeout Removed",
-				Color: 0x008888,
+				Color: 0xFFD166,
 				Fields: []*dg.MessageEmbedField{
-					{Name: "User", Value: fmt.Sprintf("<@%s>", d.Event.User.ID), Inline: true},
+					{Name: "User ID", Value: d.Event.User.ID, Inline: true},
+					{Name: "Username", Value: d.Event.User.Username, Inline: true},
+					{Name: "Server Name", Value: d.Event.Member.Nick, Inline: true},
 				},
 			})
 			return err
