@@ -117,7 +117,7 @@ func TryAssignRegularsRole(guildID string, member *dg.Member, logger *zerolog.Lo
 	}
 	daysJoined := uint(time.Since(member.JoinedAt).Truncate(24*time.Hour).Hours() / 24)
 	if daysJoined < minDaysJoined {
-		return Response{Key: "roles.regulars.joinTimeNotMet", Vars: &i18n.Vars{"target": member.Mention(), "value": daysJoined}}
+		return Response{Key: "roles.regulars.joinTimeNotMet", Vars: &i18n.Vars{"target": member.Mention(), "value": daysJoined, "threshold": minDaysJoined}}
 	}
 
 	var metric database.MessageMetric
@@ -127,10 +127,10 @@ func TryAssignRegularsRole(guildID string, member *dg.Member, logger *zerolog.Lo
 		return Response{Key: "roles.error"}
 	}
 	if metric.MessageCount < minMessages {
-		return Response{Key: "roles.regulars.messageCountNotMet", Vars: &i18n.Vars{"target": member.User.Mention(), "value": minMessages}}
+		return Response{Key: "roles.regulars.messageCountNotMet", Vars: &i18n.Vars{"target": member.User.Mention(), "value": metric.MessageCount, "threshold": minMessages}}
 	}
 	if metric.DistinctDays < minDaysActive {
-		return Response{Key: "roles.regulars.distinctDaysNotMet", Vars: &i18n.Vars{"target": member.User.Mention(), "value": minDaysActive}}
+		return Response{Key: "roles.regulars.distinctDaysNotMet", Vars: &i18n.Vars{"target": member.User.Mention(), "value": metric.DistinctDays, "threshold": minDaysActive}}
 	}
 
 	// All checks have passed, give the role.

@@ -386,9 +386,9 @@ roles:
     success: "{{ .target }} ha recibido el rol temporal. Expirará alrededor de {{ .expires }}."
   regulars:
     success: "{{ .target }} ha recibido el rol de regulares con éxito."
-    joinTimeNotMet: "{{ .target }} no ha sido miembro del servidor por suficiente tiempo para recibir el rol de regulares. Ha sido miembro por {{ .value }} días."
-    messageCountNotMet: "{{ .target }} no ha enviado suficientes mensajes para recibir el rol de regulares. Ha enviado {{ .value }} mensajes hasta ahora."
-    distinctDaysNotMet: "{{ .target }} no ha estado lo suficientemente activo para recibir el rol de regulares. Ha estado activo durante {{ .value }} días hasta ahora."
+    joinTimeNotMet: "{{ .target }} no ha sido miembro del servidor por suficiente tiempo para recibir el rol de regulares. Ha sido miembro por {{ .value }} / {{ .threshold }} días."
+    messageCountNotMet: "{{ .target }} no ha enviado suficientes mensajes para recibir el rol de regulares. Ha enviado {{ .value }} / {{ .threshold }} mensajes hasta ahora."
+    distinctDaysNotMet: "{{ .target }} no ha estado lo suficientemente activo para recibir el rol de regulares. Ha estado activo durante {{ .value }} / {{ .threshold }} días hasta ahora."
 admin:
   config:
     reload:

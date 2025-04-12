@@ -347,9 +347,9 @@ roles:
     success: "{{ .target }} 已获得临时身份组，将在 {{ .expires }} 左右过期。"
   regulars:
     success: "{{ .target }} 已成功获得常客身份组。"
-    joinTimeNotMet: "{{ .target }} 加入服务器的时间还不够，无法获得常客身份组。他们已经加入 {{ .value }} 天了。"
-    messageCountNotMet: "{{ .target }} 发送的消息还不够，无法获得常客身份组。目前共发送了 {{ .value }} 条消息。"
-    distinctDaysNotMet: "{{ .target }} 在服务器上的活跃天数还不够，目前为 {{ .value }} 天。"
+    joinTimeNotMet: "{{ .target }} 加入服务器的时间还不够，无法获得常客身份组。他们已经加入 {{ .value }} / {{ .threshold }} 天了。"
+    messageCountNotMet: "{{ .target }} 发送的消息还不够，无法获得常客身份组。目前共发送了 {{ .value }} / {{ .threshold }} 条消息。"
+    distinctDaysNotMet: "{{ .target }} 在服务器上的活跃天数还不够，目前为 {{ .value }} / {{ .threshold }} 天。"
 admin:
   config:
     reload:
