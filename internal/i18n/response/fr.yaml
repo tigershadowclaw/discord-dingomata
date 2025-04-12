@@ -388,7 +388,7 @@ roles:
     success: "{{ .target }} a reçu le rôle temporaire. Il expirera vers {{ .expires }}."
   regulars:
     success: "{{ .target }} a reçu le rôle des habitués avec succès."
-    joinTimeNotMet: "{{ .target }} n’est pas membre du serveur depuis assez longtemps pour recevoir le rôle des habitués."
+    joinTimeNotMet: "{{ .target }} n’est pas membre du serveur depuis assez longtemps pour recevoir le rôle des habitués. Il a été membre depuis {{ .value }} jours."
     messageCountNotMet: "{{ .target }} n’a pas envoyé assez de messages pour recevoir le rôle des habitués. Il en a envoyé {{ .value }} pour l’instant."
     distinctDaysNotMet: "{{ .target }} n’a pas été assez actif sur le serveur pour recevoir le rôle des habitués. Il a été actif pendant {{ .value }} jours jusqu’à maintenant."
 admin:

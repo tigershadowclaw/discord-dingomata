@@ -456,7 +456,7 @@ roles:
     success: "{{ .target }} has been given the temporary role. It will expire around {{ .expires }}."
   regulars:
     success: "{{ .target }} has been given the regulars role successfully."
-    joinTimeNotMet: "{{ .target }} has not been a member of the server for long enough to be given the regulars role."
+    joinTimeNotMet: "{{ .target }} has not been a member of the server for long enough to be given the regulars role. They have been a member for {{ .value }} days."
     messageCountNotMet: "{{ .target }} has not sent enough messages to be given the regulars role. They have sent {{ .value }} messages so far."
     distinctDaysNotMet: "{{ .target }} has not been active enough on the server to be given the regulars role. They have been active for {{ .value }} days so far."
 admin:

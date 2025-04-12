@@ -115,8 +115,9 @@ func TryAssignRegularsRole(guildID string, member *dg.Member, logger *zerolog.Lo
 	if slices.Contains(member.Roles, roleIDStr) {
 		return Response{Key: "roles.alreadyHasRole"}
 	}
-	if minDaysJoined > 0 && member.JoinedAt.Add(time.Duration(minDaysJoined)*24*time.Hour).Before(time.Now()) {
-		return Response{Key: "roles.regulars.joinTimeNotMet", Vars: &i18n.Vars{"target": member.Mention()}}
+	daysJoined := uint(time.Since(member.JoinedAt).Truncate(24*time.Hour).Hours() / 24)
+	if daysJoined < minDaysJoined {
+		return Response{Key: "roles.regulars.joinTimeNotMet", Vars: &i18n.Vars{"target": member.Mention(), "value": daysJoined}}
 	}
 
 	var metric database.MessageMetric
