@@ -21,7 +21,7 @@ func roleMessageMetricsHandler(d EventData[dg.MessageCreate]) error {
 	roleIdStr := string(roleId)
 
 	// Ignore bots
-	if d.Event.Author == nil || d.Event.Author.Bot {
+	if d.Event.Member == nil || d.Event.Author.Bot {
 		return nil
 	}
 
