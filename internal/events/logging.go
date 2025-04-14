@@ -38,7 +38,7 @@ func logMessageUpdate(d EventData[dg.MessageUpdate]) error {
 					Title: "Message Updated",
 					Fields: []*dg.MessageEmbedField{
 						{Name: "Channel", Value: fmt.Sprintf("<#%s>", d.Event.ChannelID), Inline: true},
-						{Name: "Author", Value: d.Event.Author.Mention(), Inline: true},
+						{Name: "Author", Value: fmt.Sprintf("<@%s>", cached.Author.ID), Inline: true},
 						{Name: "Sent at", Value: fmt.Sprintf("<t:%d:f>", cached.Timestamp.Unix()), Inline: true},
 						{Name: "Message URL", Value: fmt.Sprintf("https://discord.com/channels/%s/%s/%s", d.Event.GuildID, d.Event.ChannelID, d.Event.Message.ID)},
 						{Name: "Previous Content", Value: cached.Content},
@@ -64,7 +64,7 @@ func logMessageDelete(d EventData[dg.MessageDelete]) error {
 				Title: "Message Deleted",
 				Fields: []*dg.MessageEmbedField{
 					{Name: "Channel", Value: fmt.Sprintf("<#%s>", d.Event.ChannelID), Inline: true},
-					{Name: "Author", Value: d.Event.Author.Mention(), Inline: true},
+					{Name: "Author", Value: fmt.Sprintf("<@%s>", cached.Author.Mention()), Inline: true},
 					{Name: "Sent at", Value: fmt.Sprintf("<t:%d:f>", cached.Timestamp.Unix()), Inline: true},
 					{Name: "Message URL", Value: fmt.Sprintf("https://discord.com/channels/%s/%s/%s", d.Event.GuildID, d.Event.ChannelID, d.Event.Message.ID)},
 					{Name: "Content", Value: cached.Content},
