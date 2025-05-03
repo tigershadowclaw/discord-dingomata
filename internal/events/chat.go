@@ -151,7 +151,7 @@ func getAIResponse(prompt string, history []*dg.Message, log *zerolog.Logger) (s
 	log.Debug().Str("system", prompt).Str("message", messagePrompt).Msg("Sending message to AI.")
 
 	resp, err := client.Responses.New(context.Background(), responses.ResponseNewParams{
-		Model:           openai.ChatModelGPT4oMini,
+		Model:           "gpt-4.1", // enum not yet available
 		Instructions:    openai.String(prompt),
 		Input:           responses.ResponseNewParamsInputUnion{OfString: openai.String(messagePrompt)},
 		Temperature:     openai.Float(1.2),
