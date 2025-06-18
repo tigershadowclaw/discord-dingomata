@@ -120,6 +120,11 @@ var bskyNotificationTask = PeriodicTask{
 				userLastKnownPosts[user] = lastPostCreated.Add(5 * time.Second) // a buffer to guard against rounding issues?
 
 				for _, post := range newPosts {
+					// Check if this is a repost and skip if it is
+					if post.Reason != nil {
+						tctx.Logger.Debug().Str("user", user).Msg("Skipping repost.")
+						continue
+					}
 					for _, guildId := range guildIds {
 						_sendBskyNotification(tctx, user, guildId, channels[guildId], templates[guildId], post)
 					}
