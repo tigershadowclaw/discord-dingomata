@@ -14,9 +14,9 @@ import (
 	"time"
 
 	dg "github.com/bwmarrin/discordgo"
-	"github.com/openai/openai-go"
-	"github.com/openai/openai-go/option"
-	"github.com/openai/openai-go/responses"
+	"github.com/openai/openai-go/v2"
+	"github.com/openai/openai-go/v2/option"
+	"github.com/openai/openai-go/v2/responses"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 )
@@ -149,12 +149,10 @@ func getAIResponse(prompt string, history []*dg.Message, log *zerolog.Logger) (s
 	}), "\n")
 
 	log.Debug().Str("system", prompt).Str("message", messagePrompt).Msg("Sending message to AI.")
-
 	resp, err := client.Responses.New(context.Background(), responses.ResponseNewParams{
-		Model:           openai.ChatModelGPT4_1,
+		Model:           openai.ChatModelGPT5ChatLatest,
 		Instructions:    openai.String(prompt),
 		Input:           responses.ResponseNewParamsInputUnion{OfString: openai.String(messagePrompt)},
-		Temperature:     openai.Float(1.2),
 		MaxOutputTokens: openai.Int(300),
 	})
 	if err != nil {
